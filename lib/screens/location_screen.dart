@@ -1,12 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:climaapp/utilities/constants.dart';
+import 'package:climaapp/services/weather.dart';
+import 'city_screen.dart';
 
 class LocationScreen extends StatefulWidget {
+  final locationWeather;
+  LocationScreen({required this.locationWeather});
   @override
   _LocationScreenState createState() => _LocationScreenState();
 }
 
 class _LocationScreenState extends State<LocationScreen> {
+  WeatherModel weather=WeatherModel();
+  late int temperature;
+  late String WeatherIcon;
+  late String cityName;
+  late String WeatherMessage;
+  @override
+  void initState() {
+    super.initState();
+    updateUI(widget.locationWeather);
+    print(temperature);
+  }
+  void updateUI(dynamic weatherData)
+  {
+    setState(() {
+      if (weatherData==null)
+      {
+        temperature=0;
+        WeatherIcon='Error';
+        WeatherMessage='Unable to get data';
+        cityName=' ';
+        return;
+      }
+      double temp=weatherData['main']['temp'];
+      temperature=temp.toInt();
+      var condition=weatherData['weather'][0]['id'];
+      WeatherIcon=weather.getWeatherIcon(condition);
+      WeatherMessage=weather.getMessage(temperature);
+      cityName=weatherData['name'];
+    });
+
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,59 +57,71 @@ class _LocationScreenState extends State<LocationScreen> {
         ),
         constraints: BoxConstraints.expand(),
         child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: Icon(
-                      Icons.near_me,
-                      size: 50.0,
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: Icon(
-                      Icons.location_city,
-                      size: 50.0,
-                    ),
-                  ),
-                ],
-              ),
-              Padding(
-                padding: EdgeInsets.only(left: 15.0),
-                child: Row(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: <Widget>[
-                    Text(
-                      '32°',
-                      style: kTempTextStyle,
+                    ElevatedButton(
+                      onPressed: () async{
+                        var weatherData=await weather.getLocationWeather();
+                        updateUI(weatherData);
+
+                      },
+                      child: Icon(
+                        Icons.near_me,
+                        size: 50.0,
+                      ),
                     ),
-                    Text(
-                      '☀️',
-                      style: kConditionTextStyle,
+                    ElevatedButton(
+                      onPressed: () async{
+                        var typedName=await Navigator.push(context, MaterialPageRoute(builder: (context){
+                          return CityScreen();
+                        }));
+                        if (typedName!=null)
+                          {
+                            var weatherData=await weather.getCityName(typedName);
+                            updateUI(weatherData);
+                          }
+                      },
+                      child: Icon(
+                        Icons.location_city,
+                        size: 50.0,
+                      ),
                     ),
                   ],
                 ),
-              ),
-              Padding(
-                padding: EdgeInsets.only(right: 15.0),
-                child: Text(
-                  "It's 🍦 time in San Francisco!",
-                  textAlign: TextAlign.right,
-                  style: kMessageTextStyle,
+                Padding(
+                  padding: EdgeInsets.only(left: 15.0),
+                  child: Row(
+                    children: <Widget>[
+                      Text(
+                        '$temperature°',
+                        style: kTempTextStyle,
+                      ),
+                      Text(
+                        '$WeatherIcon',
+                        style: kConditionTextStyle,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                Padding(
+                  padding: EdgeInsets.only(right: 15.0),
+                  child: Text(
+                    "$WeatherMessage in $cityName",
+                    textAlign: TextAlign.right,
+                    style: kMessageTextStyle,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
-// double temperature=decodedData['main']['temp'];
-// int condition=decodedData['weather'][0]['id'];
-// String cityName=decodedData['name'];
